@@ -65,7 +65,7 @@ const CarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dew
                 [0, 0], [16, 0], [16, 10], [10, 13], [4, 16], [0, 13]
             ];
             greenPressurePath = [
-                [0, 0], [10, 0], [10, 5], [5, 8], [0, 8], [0, 5]
+                [6, 4], [16, 4], [16, 13], [14, 13], [9, 13], [6, 10]
             ];
         } else {
             // Fahrenheit regions (original)
@@ -79,7 +79,7 @@ const CarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dew
                 [0, 0], [60, 0], [60, 50], [50, 55], [30, 60], [10, 55], [0, 45]
             ];
             greenPressurePath = [
-                [0, 0], [30, 0], [30, 20], [20, 25], [10, 25], [0, 20]
+                [10, 40], [30, 40], [30, 55], [25, 55], [15, 55], [10, 50]
             ];
         }
 
