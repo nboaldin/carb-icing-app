@@ -265,10 +265,10 @@ const CarbIcingCalculator: React.FC = () => {
                                             <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(255, 165, 0, 0.5)'}}></div>
                                             <span>Serious icing (cruise power)</span>
                                         </div>
-                                        <div className="flex items-center">
+                                        {/* <div className="flex items-center">
                                             <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(34, 139, 34, 0.6)'}}></div>
                                             <span>Icing (pressure-type carburetors)</span>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 </div>
                             </div>

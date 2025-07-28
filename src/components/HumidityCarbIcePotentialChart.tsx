@@ -105,12 +105,12 @@ const HumidityCarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ t
             .attr('stroke', 'rgba(255, 165, 0, 0.8)')
             .attr('stroke-width', 1);
 
-        g.append('path')
-            .datum(greenPressurePath)
-            .attr('d', line)
-            .attr('fill', 'rgba(34, 139, 34, 0.6)')
-            .attr('stroke', 'rgba(34, 139, 34, 0.8)')
-            .attr('stroke-width', 1);
+        // g.append('path')
+        //     .datum(greenPressurePath)
+        //     .attr('d', line)
+        //     .attr('fill', 'rgba(34, 139, 34, 0.6)')
+        //     .attr('stroke', 'rgba(34, 139, 34, 0.8)')
+        //     .attr('stroke-width', 1);
 
         // Add relative humidity lines (diagonal lines)
         const humidityLines = [20, 40, 60, 80, 100];
