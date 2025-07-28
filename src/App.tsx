@@ -9,8 +9,8 @@ import {
 } from './components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from './components/ui/card';
 import { cn } from './lib/utils';
-import CarbIcingChart from './components/CarbIcingChart';
-import CarbIcePotentialChart from './components/CarbIcePotentialChart';
+import CasaCarbIcingChart from './components/CasaCarbIcingChart';
+import HumidityCarbIcePotentialChart from './components/HumidityCarbIcePotentialChart';
 import './index.css';
 
 const CarbIcingCalculator: React.FC = () => {
@@ -52,6 +52,17 @@ const CarbIcingCalculator: React.FC = () => {
         } else {
             setTemp(numValue.toString());
         }
+        
+        // If dew point is set and would exceed new temperature, adjust it
+        if (dewPoint) {
+            const dewPointNum = parseFloat(dewPoint);
+            const newTempNum = tempUnit === 'F' ? fToC(numValue) : numValue;
+            if (dewPointNum > newTempNum) {
+                const adjustedDewPoint = tempUnit === 'F' ? cToF(newTempNum) : newTempNum;
+                setDewPoint(newTempNum.toString());
+                setDewPointInput(adjustedDewPoint.toString());
+            }
+        }
     };
 
     const handleDewPointInputChange = (value: string) => {
@@ -62,6 +73,19 @@ const CarbIcingCalculator: React.FC = () => {
         }
         const numValue = parseFloat(value);
         if (isNaN(numValue)) return;
+        
+        // Convert to Celsius for comparison
+        const dewPointCelsius = tempUnit === 'F' ? fToC(numValue) : numValue;
+        const tempCelsius = temp ? parseFloat(temp) : 0;
+        
+        // Prevent dew point from exceeding temperature
+        if (dewPointCelsius > tempCelsius && temp) {
+            // Cap dew point at temperature
+            const cappedDewPoint = tempUnit === 'F' ? cToF(tempCelsius) : tempCelsius;
+            setDewPoint(tempCelsius.toString());
+            setDewPointInput(cappedDewPoint.toString());
+            return;
+        }
         
         if (tempUnit === 'F') {
             setDewPoint(fToC(numValue).toString());
@@ -150,7 +174,7 @@ const CarbIcingCalculator: React.FC = () => {
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Dew Point ({tempUnit === 'C' ? '°C' : 'Fahrenheit'})
+                                Dew Point ({tempUnit === 'C' ? '°C' : '°F'})
                             </label>
                             <Input
                                 type="number"
@@ -159,6 +183,11 @@ const CarbIcingCalculator: React.FC = () => {
                                 placeholder={`Enter dew point in ${tempUnit === 'C' ? 'Celsius' : 'Fahrenheit'}`}
                                 className="w-full"
                             />
+                            {temp && dewPoint && parseFloat(dewPoint) >= parseFloat(temp) && (
+                                <p className="text-xs text-orange-600 mt-1">
+                                    Note: Dew point cannot exceed temperature (100% humidity limit)
+                                </p>
+                            )}
                         </div>
                         <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -194,24 +223,24 @@ const CarbIcingCalculator: React.FC = () => {
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
                             <div>
                                 <h3 className="text-lg font-semibold mb-2">CASA Chart (Dew Point Depression)</h3>
-                                <CarbIcingChart temp={temp} dewPoint={dewPoint} tempUnit={tempUnit} />
+                                <CasaCarbIcingChart temp={temp} dewPoint={dewPoint} tempUnit={tempUnit} />
                                 <div className="mt-4 text-xs text-gray-600">
                                     <p className="font-semibold mb-2">Chart Legend:</p>
                                     <div className="grid grid-cols-1 gap-1">
                                         <div className="flex items-center">
-                                            <div className="w-4 h-4 bg-red-600 rounded mr-2"></div>
+                                            <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(25, 25, 112, 0.6)'}}></div>
                                             <span>Serious icing - any power</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <div className="w-4 h-4 bg-orange-500 rounded mr-2"></div>
+                                            <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(70, 130, 180, 0.5)'}}></div>
                                             <span>Serious icing - descent power</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <div className="w-4 h-4 bg-yellow-500 rounded mr-2"></div>
+                                            <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(100, 149, 237, 0.4)'}}></div>
                                             <span>Moderate icing - cruise power</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <div className="w-4 h-4 bg-blue-400 rounded mr-2"></div>
+                                            <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(173, 216, 230, 0.3)'}}></div>
                                             <span>Light icing - cruise/descent</span>
                                         </div>
 
@@ -220,24 +249,24 @@ const CarbIcingCalculator: React.FC = () => {
                             </div>
                             <div>
                                 <h3 className="text-lg font-semibold mb-2">Carb Ice Potential (Relative Humidity)</h3>
-                                <CarbIcePotentialChart temp={temp} dewPoint={dewPoint} tempUnit={tempUnit} />
+                                <HumidityCarbIcePotentialChart temp={temp} dewPoint={dewPoint} tempUnit={tempUnit} />
                                 <div className="mt-4 text-xs text-gray-600">
                                     <p className="font-semibold mb-2">Chart Legend:</p>
                                     <div className="grid grid-cols-1 gap-1">
                                         <div className="flex items-center">
-                                            <div className="w-4 h-4 bg-blue-400 rounded mr-2"></div>
+                                            <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(100, 149, 237, 0.3)'}}></div>
                                             <span>Icing (glide and cruise power)</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <div className="w-4 h-4 bg-yellow-400 rounded mr-2"></div>
+                                            <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(255, 255, 0, 0.4)'}}></div>
                                             <span>Serious icing (glide power)</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <div className="w-4 h-4 bg-orange-400 rounded mr-2"></div>
+                                            <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(255, 165, 0, 0.5)'}}></div>
                                             <span>Serious icing (cruise power)</span>
                                         </div>
                                         <div className="flex items-center">
-                                            <div className="w-4 h-4 bg-green-500 rounded mr-2"></div>
+                                            <div className="w-4 h-4 rounded mr-2" style={{backgroundColor: 'rgba(34, 139, 34, 0.6)'}}></div>
                                             <span>Icing (pressure-type carburetors)</span>
                                         </div>
                                     </div>

@@ -7,7 +7,7 @@ interface CarbIcePotentialChartProps {
     tempUnit: 'C' | 'F';
 }
 
-const CarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dewPoint, tempUnit }) => {
+const HumidityCarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dewPoint, tempUnit }) => {
     const svgRef = useRef<SVGSVGElement>(null);
 
     useEffect(() => {
@@ -29,8 +29,8 @@ const CarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dew
             .attr('transform', `translate(${margin.left},${margin.top})`);
 
         // Convert Fahrenheit to Celsius for internal calculations
-        const fToC = (f: number) => (f - 32) * 5/9;
-        const cToF = (c: number) => c * 9/5 + 32;
+        const fToC = (f: number) => (f - 32) * 5 / 9;
+        const cToF = (c: number) => c * 9 / 5 + 32;
 
         // Set up scales based on temperature unit
         const xScale = d3.scaleLinear()
@@ -65,7 +65,7 @@ const CarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dew
                 [0, 0], [16, 0], [16, 10], [10, 13], [4, 16], [0, 13]
             ];
             greenPressurePath = [
-                [6, 4], [16, 4], [16, 13], [14, 13], [9, 13], [6, 10]
+                [4, 4], [16, 4], [16, 13], [14, 13], [9, 13], [4, 10]
             ];
         } else {
             // Fahrenheit regions (original)
@@ -116,28 +116,91 @@ const CarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dew
         const humidityLines = [20, 40, 60, 80, 100];
         humidityLines.forEach(humidity => {
             // Create diagonal line for relative humidity
-            const startX = 0;
-            const startY = 0;
-            const endX = tempUnit === 'C' ? 54 : 110;
-            const endY = tempUnit === 'C' ? humidity * 0.36 : humidity; // Scale for Celsius
+            // For 100% RH, dew point equals ambient temperature (diagonal line from origin)
+            // For other RH levels, dew point = ambient temp * (RH/100)
+            const maxTemp = tempUnit === 'C' ? 54 : 110;
+            const maxDewPoint = tempUnit === 'C' ? 32 : 90;
 
-            g.append('line')
-                .attr('x1', xScale(startX))
-                .attr('y1', yScale(startY))
-                .attr('x2', xScale(endX))
-                .attr('y2', yScale(endY))
+            // Create points for the humidity line
+            const points: [number, number][] = [];
+            for (let temp = 0; temp <= maxTemp; temp += maxTemp / 20) {
+                let dewPoint: number;
+
+                if (humidity === 100) {
+                    // 100% RH: dew point equals temperature (but capped at max dew point)
+                    dewPoint = Math.min(temp, maxDewPoint);
+                } else {
+                    // Other RH levels: dew point = temp * (humidity/100)
+                    dewPoint = temp * (humidity / 100);
+                    // Ensure dew point doesn't exceed temperature (100% RH limit)
+                    dewPoint = Math.min(dewPoint, temp);
+                    // Also cap at maximum dew point
+                    dewPoint = Math.min(dewPoint, maxDewPoint);
+                }
+
+                points.push([temp, dewPoint]);
+            }
+
+            // Draw the humidity line
+            g.append('path')
+                .datum(points)
+                .attr('d', line)
                 .attr('stroke', 'rgba(128, 128, 128, 0.6)')
                 .attr('stroke-width', 1)
+                .attr('fill', 'none')
                 .attr('stroke-dasharray', humidity === 100 ? 'none' : '5,5');
 
-            // Add humidity labels
-            g.append('text')
-                .attr('x', xScale(endX + 5))
-                .attr('y', yScale(endY) - 5)
-                .style('font-size', '10px')
-                .style('fill', 'rgba(128, 128, 128, 0.8)')
-                .text(`${humidity}%`);
+            // Add humidity labels inside the visible area
+            const midPoint = Math.floor(points.length / 2);
+            const labelPoint = points[midPoint];
+            
+            // Only add label if it's within the visible area
+            if (labelPoint[0] >= 0 && labelPoint[0] <= maxTemp && 
+                labelPoint[1] >= 0 && labelPoint[1] <= maxDewPoint) {
+                g.append('text')
+                    .attr('x', xScale(labelPoint[0]) + 15)
+                    .attr('y', yScale(labelPoint[1]) - 5)
+                    .style('font-size', '10px')
+                    .style('fill', 'rgba(128, 128, 128, 0.8)')
+                    .style('font-weight', 'bold')
+                    .text(`${humidity}%`);
+            }
         });
+
+        // Gray out the region above 100% humidity (physically impossible)
+        const impossibleRegionPoints: [number, number][] = [];
+        const maxTemp = tempUnit === 'C' ? 54 : 110;
+        const maxDewPoint = tempUnit === 'C' ? 32 : 90;
+
+        // Create the boundary for the impossible region
+        for (let temp = 0; temp <= maxTemp; temp += maxTemp / 50) {
+            // 100% RH line (upper boundary)
+            const dewPoint100 = Math.min(temp, maxDewPoint);
+            impossibleRegionPoints.push([temp, dewPoint100]);
+        }
+
+        // Add the right edge and top edge to close the shape
+        impossibleRegionPoints.push([maxTemp, maxDewPoint]);
+        impossibleRegionPoints.push([maxTemp, maxDewPoint + 20]); // Extend above chart
+        impossibleRegionPoints.push([0, maxDewPoint + 20]); // Top edge
+        impossibleRegionPoints.push([0, 0]); // Back to origin
+
+        // Draw the impossible region
+        g.append('path')
+            .datum(impossibleRegionPoints)
+            .attr('d', line)
+            .attr('fill', 'rgba(200, 200, 200, 0.3)')
+            .attr('stroke', 'rgba(150, 150, 150, 0.5)')
+            .attr('stroke-width', 1);
+
+        // Add label for impossible region
+        g.append('text')
+            .attr('x', xScale(maxTemp * 0.7))
+            .attr('y', yScale(maxDewPoint * 0.8))
+            .style('font-size', '12px')
+            .style('fill', 'rgba(100, 100, 100, 0.8)')
+            .style('font-weight', 'bold')
+            .style('text-anchor', 'middle');
 
         // Add axes
         const xAxis = d3.axisBottom(xScale);
@@ -168,20 +231,31 @@ const CarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dew
         if (temp && dewPoint) {
             const tempNum = parseFloat(temp);
             const dewPointNum = parseFloat(dewPoint);
-            
+
             // Convert from Celsius to display unit
             const displayTemp = tempUnit === 'F' ? cToF(tempNum) : tempNum;
             const displayDewPoint = tempUnit === 'F' ? cToF(dewPointNum) : dewPointNum;
 
-
-
-            g.append('circle')
-                .attr('cx', xScale(displayTemp))
-                .attr('cy', yScale(displayDewPoint))
-                .attr('r', 6)
-                .attr('fill', 'red')
-                .attr('stroke', 'darkred')
-                .attr('stroke-width', 2);
+            // Only plot point if dew point doesn't exceed temperature
+            if (dewPointNum <= tempNum) {
+                g.append('circle')
+                    .attr('cx', xScale(displayTemp))
+                    .attr('cy', yScale(displayDewPoint))
+                    .attr('r', 6)
+                    .attr('fill', 'red')
+                    .attr('stroke', 'darkred')
+                    .attr('stroke-width', 2);
+            } else {
+                // Show invalid point in gray at the 100% RH line
+                g.append('circle')
+                    .attr('cx', xScale(displayTemp))
+                    .attr('cy', yScale(displayTemp)) // On the 100% RH line
+                    .attr('r', 6)
+                    .attr('fill', 'gray')
+                    .attr('stroke', 'darkgray')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', 0.5);
+            }
         }
 
         // Add grid lines
@@ -203,4 +277,4 @@ const CarbIcePotentialChart: React.FC<CarbIcePotentialChartProps> = ({ temp, dew
     );
 };
 
-export default CarbIcePotentialChart; 
+export default HumidityCarbIcePotentialChart; 

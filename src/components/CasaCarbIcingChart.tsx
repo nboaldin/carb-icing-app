@@ -7,7 +7,7 @@ interface CarbIcingChartProps {
     tempUnit: 'C' | 'F';
 }
 
-const CarbIcingChart: React.FC<CarbIcingChartProps> = ({ temp, dewPoint, tempUnit }) => {
+const CasaCarbIcingChart: React.FC<CarbIcingChartProps> = ({ temp, dewPoint, tempUnit }) => {
     const svgRef = useRef<SVGSVGElement>(null);
 
     useEffect(() => {
@@ -38,7 +38,7 @@ const CarbIcingChart: React.FC<CarbIcingChartProps> = ({ temp, dewPoint, tempUni
             .range([0, width]);
 
         const yScale = d3.scaleLinear()
-            .domain(tempUnit === 'C' ? [-10, 30] : [-18, 54]) // -10 to 30°C or -18 to 54°F dew point depression
+            .domain(tempUnit === 'C' ? [0, 30] : [0, 54]) // 0 to 30°C or 0 to 54°F dew point depression
             .range([height, 0]);
 
         // Define curved regions using D3 path generators
@@ -116,7 +116,11 @@ const CarbIcingChart: React.FC<CarbIcingChartProps> = ({ temp, dewPoint, tempUni
 
         // Add axes
         const xAxis = d3.axisBottom(xScale);
-        const yAxis = d3.axisLeft(yScale);
+        const yAxis = d3.axisLeft(yScale)
+            .tickFormat((d) => {
+                const value = d as number;
+                return value >= 0 ? value.toString() : '';
+            });
 
         g.append('g')
             .attr('transform', `translate(0,${height})`)
@@ -149,15 +153,26 @@ const CarbIcingChart: React.FC<CarbIcingChartProps> = ({ temp, dewPoint, tempUni
             const displayDewPoint = tempUnit === 'F' ? cToF(dewPointNum) : dewPointNum;
             const dewPointDepression = displayTemp - displayDewPoint;
 
-
-
-            g.append('circle')
-                .attr('cx', xScale(displayTemp))
-                .attr('cy', yScale(dewPointDepression))
-                .attr('r', 6)
-                .attr('fill', 'red')
-                .attr('stroke', 'darkred')
-                .attr('stroke-width', 2);
+            // Only plot point if dew point doesn't exceed temperature
+            if (dewPointNum <= tempNum) {
+                g.append('circle')
+                    .attr('cx', xScale(displayTemp))
+                    .attr('cy', yScale(dewPointDepression))
+                    .attr('r', 6)
+                    .attr('fill', 'red')
+                    .attr('stroke', 'darkred')
+                    .attr('stroke-width', 2);
+            } else {
+                // Show invalid point in gray
+                g.append('circle')
+                    .attr('cx', xScale(displayTemp))
+                    .attr('cy', yScale(0)) // At the bottom (no depression)
+                    .attr('r', 6)
+                    .attr('fill', 'gray')
+                    .attr('stroke', 'darkgray')
+                    .attr('stroke-width', 2)
+                    .attr('opacity', 0.5);
+            }
         }
 
         // Add grid lines
@@ -179,4 +194,4 @@ const CarbIcingChart: React.FC<CarbIcingChartProps> = ({ temp, dewPoint, tempUni
     );
 };
 
-export default CarbIcingChart; 
+export default CasaCarbIcingChart; 
